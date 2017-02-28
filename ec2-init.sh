@@ -18,6 +18,9 @@
 # ======================================
 # Install as /usr/local/libexec/ec2-init and append to /etc/hostname.xnf0:
 # !/usr/local/libexec/ec2-init
+#
+# When using ec2-init for VMs on OpenBSD's VMM, use hostname.vio0 instead.
+# See https://github.com/reyk/meta-data
 
 # XXXTODO https://cloudinit.readthedocs.org/en/latest/topics/format.html
 
@@ -97,7 +100,7 @@ sysclean()
 	rm -f /etc/{iked,isakmpd}/{local.pub,private/local.key} \
 		/etc/ssh/ssh_host_*
 	# remove dhcp client configuration and old leases
-	rm -f /etc/dhclient.conf /var/db/dhclient.leases.xnf[0-99]
+	rm -f /etc/dhclient.conf /var/db/dhclient.leases.{vio,xnf}[0-99]
 	# remove cruft from /tmp
 	rm -rf /tmp/{.[!.],}*
 	# reset entropy files
