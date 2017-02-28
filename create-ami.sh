@@ -143,9 +143,11 @@ create_img() {
 		${_MNT}/etc/ttys
 	echo "stty com0 9600" >${_MNT}/etc/boot.conf
 	echo "set tty com0" >>${_MNT}/etc/boot.conf
-	echo "dhcp" >${_MNT}/etc/hostname.xnf0
-	echo "!/usr/local/libexec/ec2-init" >>${_MNT}/etc/hostname.xnf0
-	chmod 0640 ${_MNT}/etc/hostname.xnf0
+	for i in xnf0 vio0; do
+		echo "dhcp" >${_MNT}/etc/hostname.$i
+		echo "!/usr/local/libexec/ec2-init" >>${_MNT}/etc/hostname.$i
+		chmod 0640 ${_MNT}/etc/hostname.$i
+	done
 	echo "127.0.0.1\tlocalhost" >${_MNT}/etc/hosts
 	echo "::1\t\tlocalhost" >>${_MNT}/etc/hosts
 	sed -i "s/^#\(PermitRootLogin\) .*/\1 no/" ${_MNT}/etc/ssh/sshd_config
