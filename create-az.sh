@@ -165,6 +165,7 @@ create_img() {
 	chroot ${_MNT} ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 	chroot ${_MNT} ldconfig /usr/local/lib /usr/X11R6/lib
 	chroot ${_MNT} rcctl disable sndiod
+	chroot ${_MNT} sha256 -h /var/db/kernel.SHA256 /bsd
 
 	log "Unmounting the image"
 	awk '$2~/^\//{sub(/^.+\./,"",$1);print $1, $2}' ${_WRKDIR}/fstab |
