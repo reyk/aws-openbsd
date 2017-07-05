@@ -40,9 +40,10 @@ VM_SIZE=Standard_DS2_v2			# Standard_A2 etc.
 
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirrors.evowise.com/pub/OpenBSD}
+AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1-alpha
 PKG_DEPS="azure-cli azure-vhd-utils qemu"
 ################################################################################
-_WRKDIR= _VHD= _LOG= _IMG= _AGENTURL= _REL=
+_WRKDIR= _VHD= _LOG= _IMG= _REL=
 ################################################################################
 
 usage() {
@@ -68,7 +69,7 @@ run() {
 
 create_img() {
 	local _MNT=${_WRKDIR}/mnt
-	local _AGENT=${_WRKDIR}/$(basename $_AGENTURL)
+	local _AGENT=${_WRKDIR}/$(basename $AGENTURL)
 	local _p _m
 	local _VNDEV=$(vnconfig -l | grep 'not in use' | head -1 |
 		cut -d ':' -f1)
@@ -82,7 +83,7 @@ create_img() {
 
 	# fetch agent first to validate the URL before doing anything else
 	log "Fetching $_AGENT"
-	run ftp -V -o ${_AGENT} ${_AGENTURL}
+	run ftp -V -o ${_AGENT} ${AGENTURL}
 
 	# ...now fetch the sets before installing anything
 	log "Fetching sets from ${MIRROR:##*//}"
@@ -259,7 +260,7 @@ create_blob() {
 CREATE_BLOB=true
 while getopts i:nr:s: arg; do
 	case ${arg} in
-	a)	_AGENTURL="${OPTARG}";;
+	a)	AGENTURL="${OPTARG}";;
 	i)	_IMG="${OPTARG}";;
 	n)	CREATE_BLOB=false;;
 	s)	IMGSIZE="${OPTARG}";;
@@ -271,7 +272,7 @@ done
 _WRKDIR=$(mktemp -d -p ${TMPDIR:=/tmp} az-img.XXXXXXXXXX)
 _REL=$(echo ${RELEASE:-$(uname -r)} | tr -d '.')
 _LOG=${_WRKDIR}/create.log
-_AGENTURL=${_AGENTURL:-file:///home/$USER/cloud-agent-${RELEASE:-$(uname -r)-current}-${ARCH}.tgz}
+AGENTURL=${AGENTURL:-file:///home/$USER}/cloud-agent-${RELEASE:-$(uname -r)-current}-${ARCH}.tgz
 
 for _p in ${PKG_DEPS}; do
 	if ! pkg_info -qe ${_p}-*; then
