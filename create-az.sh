@@ -168,6 +168,23 @@ create_img() {
 	chroot ${_MNT} rcctl disable sndiod
 	chroot ${_MNT} sha256 -h /var/db/kernel.SHA256 /bsd
 
+	log "Creating /etc/rc.sysmerge to update and reboot kernel"
+	cat >${_MNT}/etc/rc.sysmerge <<EOF
+_reboot=false
+_syspatch=\$(syspatch -c 2>/dev/null)
+if [[ -n "\$_syspatch" ]]; then
+	echo "running syspatch..."
+	syspatch
+	_reboot=true
+fi
+if typeset -f reorder_kernel >/dev/null; then
+	echo "relinking to create unique kernel..."
+	reorder_kernel
+	_reboot=true
+fi
+\$_reboot && exec reboot
+EOF
+
 	log "Unmounting the image"
 	awk '$2~/^\//{sub(/^.+\./,"",$1);print $1, $2}' ${_WRKDIR}/fstab |
 		tail -r | while read _p _m; do
