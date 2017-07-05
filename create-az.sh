@@ -117,7 +117,7 @@ create_img() {
 	done
 
 	log "Installing $(basename $_AGENT)"
-	tar -xzphf ${_AGENT} -C ${_MNT} -s '/^+.*//g'
+	tar -xzphf ${_AGENT} -C ${_MNT}/usr/local -s '/^+.*//g'
 
 	log "Installing MP kernel"
 	mv ${_WRKDIR}/bsd* ${_MNT}
