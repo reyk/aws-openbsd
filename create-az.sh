@@ -14,8 +14,8 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#
-# Create and upload an OpenBSD for Azure
+
+# Create and upload an OpenBSD image for Azure
 
 set -e
 umask 022
@@ -41,6 +41,7 @@ VM_SIZE=Standard_DS2_v2			# Standard_A2 etc.
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirrors.evowise.com/pub/OpenBSD}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
+RC_CLOUD=$PWD/rc.cloud
 PKG_DEPS="azure-cli azure-vhd-utils qemu"
 ################################################################################
 _WRKDIR= _VHD= _LOG= _IMG= _REL=
@@ -168,8 +169,14 @@ create_img() {
 	chroot ${_MNT} rcctl disable sndiod
 	chroot ${_MNT} sha256 -h /var/db/kernel.SHA256 /bsd
 
-	log "Creating /etc/rc.sysmerge to update and reboot kernel"
-	cat >${_MNT}/etc/rc.sysmerge <<EOF
+	# If the rc.cloud file is not found, fallback to the sysmerge method.
+	if [[ -s "$RC_CLOUD" ]]; then
+		log "Creating /etc/rc for first boot initialization"
+		mv ${_MNT}/etc/rc ${_MNT}/etc/rc.orig
+		cp $RC_CLOUD ${_MNT}/etc/rc
+	else
+		log "Creating /etc/rc.sysmerge to update and reboot kernel"
+		cat >${_MNT}/etc/rc.sysmerge <<EOF
 _reboot=false
 _syspatch=\$(syspatch -c 2>/dev/null)
 if [[ -n "\$_syspatch" ]]; then
@@ -184,6 +191,7 @@ if typeset -f reorder_kernel >/dev/null; then
 fi
 \$_reboot && exec reboot
 EOF
+	fi
 
 	log "Unmounting the image"
 	awk '$2~/^\//{sub(/^.+\./,"",$1);print $1, $2}' ${_WRKDIR}/fstab |

@@ -1,0 +1,84 @@
+#
+# Copyright (c) 2017 Reyk Floeter <reyk@openbsd.org>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# Make a cloud VM unique on first boot
+
+set +o sh
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+echo "Automatic initial boot in progress."
+#fsck -yp
+
+echo "mounting filesystems"
+mount -a -t nonfs,vnd
+mount -uw /
+
+# Reseed
+dmesg >/dev/random
+
+echo "starting network"
+_net_ifs="xnf0 hvn0 vio0"
+for _if in $_net_ifs; do
+	# /etc/netstart would conflict here and we simply need DHCP
+	ifconfig $_if >/dev/null 2>&1 && dhclient $_if
+done
+
+if [[ $(syspatch -c 2>/dev/null | wc -l) -gt 0 ]]; then
+	echo "running syspatch:"
+	time syspatch
+fi
+
+if grep -q reorder_kernel /etc/rc.orig; then
+	echo -n "relinking to create unique kernel:"
+	{ sed -n -e "/^reorder_kernel()/,/^)/p" /etc/rc.orig; \
+		echo reorder_kernel;} | sh
+	echo " done."
+fi
+
+echo -n "stopping network:"
+for _if in $_net_ifs; do
+	ifconfig $_if down >/dev/null 2>&1 && echo -n " $_if"
+done
+pkill dhclient
+echo "."
+
+echo "setting up rc for next boot"
+mv /etc/rc /etc/rc.cloud
+cp /etc/rc.orig /etc/rc
+
+echo -n "syncing disks..."
+sync
+echo " done."
+
+echo -n "randomizing inode generation numbers:"
+_root_fs=$(mount | sed -n 's/ .*//g; 1p')
+
+for _fs in $(mount | sed -n 's/ .*//g; 1!p' | sort -r); do
+	echo -n " ${_fs#/dev/}"
+	umount -f $_fs
+	fsirand $_fs
+done
+
+# XXX fsirand(8) says it works on root but it doesn't
+echo -n " ${_root_fs#/dev/}"
+mount -fur ${_root_fs}
+fsirand $_root_fs 2>/dev/null
+
+echo "."
+
+echo "Initial boot done, rebooting one more time."
+
+# don't sync caches after fsirand
+exec reboot -n
