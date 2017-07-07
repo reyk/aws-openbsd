@@ -14,7 +14,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# Create and upload an OpenBSD image for Azure
+# Create an auto-installing OpenBSD VM image
 
 set -e
 umask 022
@@ -28,10 +28,11 @@ TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirrors.evowise.com}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
-CLOUDURL=https://raw.githubusercontent.com/reyk/cloud-openbsd/master
-BSDSRCDIR=https://raw.githubusercontent.com/openbsd/src/master
+CLOUDURL=https://raw.githubusercontent.com/reyk/cloud-openbsd/master # $PWD
+BSDSRCDIR=https://raw.githubusercontent.com/openbsd/src/master # /usr/src
 ################################################################################
 _WRKDIR= _LOG= _IMG= _REL=
+# This tool is not installed in the OpenBSD comp set and only exists in src
 _RDSETROOT="elf32.c elf64.c elfrdsetroot.c elfrd_size.c elfrdsetroot.h"
 _RDSETROOTSRC="elf32.c elf64.c elfrdsetroot.c"
 ################################################################################
@@ -92,13 +93,13 @@ create_img() {
 	log Extracting boot image from bsd.rd
 	( cd ${_WRKDIR} && rdsetroot -x bsd.rd bsd.fs;)
 
-	log Mounting boot image
+	log Mounting and patching boot image
 	vnconfig ${_VNDEV} ${_WRKDIR}/bsd.fs
 	install -d ${_MNT}
 	run mount /dev/${_VNDEV}a ${_MNT}
 
 	for _f in auto_install.{conf,sh}; do
-		run ftp -Mo - $CLOUDURL/$_f | sed \
+		run ftp -mVo - $CLOUDURL/$_f | sed \
 			-e "s|%%MIRROR%%|${MIRROR:##*//}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
@@ -127,13 +128,12 @@ create_img() {
 	log Creating install disk image
 	vmctl create ${_IMG} -s ${IMGSIZE}G
 
-	# default disklabel automatic allocation with the following changes:
-	# - OpenBSD partition offset starts at 1M (due to Azure)
-	# - swap is removed (Azure policy for OS disk in public images)
-	# - a is extend to use the available space from swap
+	# default disklabel automatic allocation with the following change:
+	# - OpenBSD partition offset starts at 1M (due to Azure requirement)
 	log Creating and mounting image filesystem
 	run vnconfig ${_VNDEV} ${_IMG}
-	fdisk -yi ${_VNDEV} >/dev/null
+	echo 'e 3\na6\n\n1M\n*\nflag 3\nupdate\nw\nq\n' | \
+		fdisk -e ${_VNDEV} >/dev/null
 	echo 'z\na\na\n\n*\n\n\nw\nq' | \
 		disklabel -E ${_VNDEV} >/dev/null
 	newfs /dev/r${_VNDEV}a
@@ -186,6 +186,7 @@ _LOG=${_WRKDIR}/create.log
 AGENTURL=${AGENTURL:-file:///home/$USER}/cloud-agent-${RELEASE:-$(uname -r)-current}-${ARCH}.tgz
 BSDSRCDIR=$(geturl $BSDSRCDIR)
 AGENTURL=$(geturl $AGENTURL)
+CLOUDURL=$(geturl $CLOUDURL)
 MIRROR=$(geturl $MIRROR)
 
 create_img
