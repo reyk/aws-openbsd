@@ -29,13 +29,19 @@ ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirrors.evowise.com}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
 CLOUDURL=https://raw.githubusercontent.com/reyk/cloud-openbsd/master # $PWD
-BSDSRCDIR=https://raw.githubusercontent.com/openbsd/src/master # /usr/src
 ################################################################################
 _WRKDIR= _LOG= _IMG= _REL=
-# This tool is not installed in the OpenBSD comp set and only exists in src
-_RDSETROOT="elf32.c elf64.c elfrdsetroot.c elfrd_size.c elfrdsetroot.h"
-_RDSETROOTSRC="elf32.c elf64.c elfrdsetroot.c"
 ################################################################################
+
+# rdsetroot is built from files in OpenBSD's /usr/src/distrib/common/
+_RDSR="rdsetroot.tar.gz"
+_RDSRSRC="elf32.c elf64.c elfrdsetroot.c"
+_RDSRSIG=$(cat <<EOF
+SHA256 (rdsetroot.tar.gz) = 8fa8bfc52f5c8ad4f2860f8faad0392215951974be239329c4e6ddfbde8928a0\n
+SHA256 (auto_install.conf) = 553f7d8433c3380b4c1ba8c202c2304df797fbc9f60a8e72974cef6c2c340131\n
+SHA256 (auto_install.sh) = c18003e4df2b13c1e8c1b776c2d74996bf55295a7d3721c46353611439513d2a\n
+EOF
+)
 
 usage() {
 	echo "usage: ${0##*/} [-n]" \
@@ -77,13 +83,14 @@ create_img() {
 	# Create a customized bsd.rd including autoinstall(8)
 	#
 
-	# ...this is needed to modify the bsd.rd image
-	log Creating rdsetroot tool
-	for _f in $_RDSETROOT; do
-		( cd ${_WRKDIR} &&
-			run ftp -V ${BSDSRCDIR}/distrib/common/$_f;)
-	done
-	( cd ${_WRKDIR} && run cc -o rdsetroot $_RDSETROOTSRC;)
+	log Getting additional sources
+	(
+		cd ${_WRKDIR}
+		for _f in ${_RDSR} auto_install.{conf,sh}; do
+			run ftp -mVo $_f $CLOUDURL/$_f
+			echo $_RDSRSIG | run sha256 -C - $_f
+		done
+	)
 
 	# ...now fetch the bsd.rd installer
 	log "Fetching bsd.rd from ${MIRROR:##*//}"
@@ -97,6 +104,10 @@ create_img() {
 		run sha256 -C SHA256 bsd.rd
 	)
 
+	# ...this is needed to modify the bsd.rd image
+	log Creating rdsetroot tool
+	( cd ${_WRKDIR} && tar -xzphf ${_RDSR}; run cc -o rdsetroot $_RDSRSRC;)
+
 	log Extracting boot image from bsd.rd
 	( cd ${_WRKDIR} && rdsetroot -x bsd.rd bsd.fs;)
 
@@ -106,7 +117,7 @@ create_img() {
 	run mount /dev/${_VNDEV}a ${_MNT}
 
 	for _f in auto_install.{conf,sh}; do
-		run ftp -mVo - $CLOUDURL/$_f | sed \
+		cat ${_WRKDIR}/$_f | sed \
 			-e "s|%%MIRROR%%|${MIRROR:##*//}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
@@ -179,7 +190,6 @@ geturl() {
 while getopts a:b:i:m:r:s: arg; do
 	case ${arg} in
 	a)	AGENTURL="${OPTARG}";;
-	b)	BSDSRCDIR="${OPTARG}";;
 	i)	_IMG="${OPTARG}";;
 	m)	MIRROR="${OPTARG}";;
 	r)	RELEASE="${OPTARG}";;
@@ -192,7 +202,6 @@ _WRKDIR=$(mktemp -d -p ${TMPDIR:=/tmp} auto-img.XXXXXXXXXX)
 _REL=$(echo ${RELEASE:-$(uname -r)} | tr -d '.')
 _LOG=${_WRKDIR}/create.log
 AGENTURL=${AGENTURL:-file:///home/$USER}/cloud-agent-${RELEASE:-$(uname -r)-current}-${ARCH}.tgz
-BSDSRCDIR=$(geturl $BSDSRCDIR)
 AGENTURL=$(geturl $AGENTURL)
 CLOUDURL=$(geturl $CLOUDURL)
 MIRROR=$(geturl $MIRROR)
