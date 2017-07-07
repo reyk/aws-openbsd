@@ -112,7 +112,7 @@ create_img() {
 	sed -i -e '/-x \/mnt\/\$MODE.site/i\
 	[[ -x /auto_$MODE.sh ]] && /auto_$MODE.sh
 	' ${_MNT}/install.sub
-	sed -i -e 's/ 5/ 0.5/g' ${_MNT}/.profile
+	sed -i -e 's/ 5/ 0/g' ${_MNT}/.profile
 
 	log Unmounting the boot image
 	umount ${_MNT}
