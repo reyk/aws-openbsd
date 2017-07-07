@@ -87,8 +87,15 @@ create_img() {
 
 	# ...now fetch the bsd.rd installer
 	log "Fetching bsd.rd from ${MIRROR:##*//}"
-	( cd ${_WRKDIR} &&
-		run ftp -V ${MIRROR}/pub/OpenBSD/${RELEASE:-snapshots}/${ARCH}/bsd.rd;)
+	(
+		cd ${_WRKDIR}
+		for _f in bsd.rd SHA256.sig; do
+			run ftp -V ${MIRROR}/pub/OpenBSD/${RELEASE:-snapshots}/${ARCH}/$_f
+		done
+		run signify -Vep /etc/signify/openbsd-${_REL}-base.pub \
+			-x SHA256.sig -m SHA256
+		run sha256 -C SHA256 bsd.rd
+	)
 
 	log Extracting boot image from bsd.rd
 	( cd ${_WRKDIR} && rdsetroot -x bsd.rd bsd.fs;)
@@ -122,7 +129,7 @@ create_img() {
 	( cd ${_WRKDIR} && rdsetroot bsd.rd bsd.fs;)
 
 	#
-	# Create a bootable install disk including with our bsd.rd
+	# Create a bootable install disk including our bsd.rd
 	#
 
 	log Creating install disk image
@@ -156,6 +163,7 @@ create_img() {
 
 	log "Removing downloaded and temporary files"
 	rm -f ${_WRKDIR}/bsd.rd ${_AGENT} || true # non-fatal
+	rm -f ${_WRKDIR}/SHA256{,.sig} || true # non-fatal
 	rm -r ${_MNT} || true # non-fatal
 
 	log "Image available at: ${_IMG}"
