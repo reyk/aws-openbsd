@@ -28,7 +28,7 @@ TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirror.leaseweb.net}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
-CLOUDURL=https://raw.githubusercontent.com/reyk/cloud-openbsd/master # $PWD
+CLOUDURL=$PWD/data #https://raw.githubusercontent.com/reyk/cloud-openbsd/master
 ################################################################################
 _WRKDIR= _LOG= _IMG= _REL=
 ################################################################################
@@ -36,12 +36,6 @@ _WRKDIR= _LOG= _IMG= _REL=
 # rdsetroot is built from files in OpenBSD's /usr/src/distrib/common/
 _RDSR="rdsetroot.tar.gz"
 _RDSRSRC="elf32.c elf64.c elfrdsetroot.c"
-_RDSRSIG=$(cat <<EOF
-SHA256 (rdsetroot.tar.gz) = 8fa8bfc52f5c8ad4f2860f8faad0392215951974be239329c4e6ddfbde8928a0\n
-SHA256 (auto_install.conf) = 553f7d8433c3380b4c1ba8c202c2304df797fbc9f60a8e72974cef6c2c340131\n
-SHA256 (auto_install.sh) = c18003e4df2b13c1e8c1b776c2d74996bf55295a7d3721c46353611439513d2a\n
-EOF
-)
 
 usage() {
 	echo "usage: ${0##*/} [-n]" \
@@ -88,7 +82,6 @@ create_img() {
 		cd ${_WRKDIR}
 		for _f in ${_RDSR} auto_install.{conf,sh}; do
 			run ftp -mVo $_f $CLOUDURL/$_f
-			echo $_RDSRSIG | run sha256 -C - $_f
 		done
 	)
 

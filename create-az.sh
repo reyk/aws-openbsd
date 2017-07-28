@@ -41,7 +41,7 @@ VM_SIZE=Standard_DS2_v2			# Standard_A2 etc.
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirror.leaseweb.net/pub/OpenBSD}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
-RC_CLOUD=$PWD/rc.cloud
+RC_CLOUD=$PWD/data/rc.cloud
 PKG_DEPS="azure-cli azure-vhd-utils qemu"
 ################################################################################
 _WRKDIR= _VHD= _LOG= _IMG= _REL=
