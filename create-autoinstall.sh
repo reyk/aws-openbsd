@@ -99,7 +99,12 @@ create_img() {
 
 	# ...this is needed to modify the bsd.rd image
 	log Creating rdsetroot tool
-	( cd ${_WRKDIR} && tar -xzphf ${_RDSR}; run cc -o rdsetroot $_RDSRSRC;)
+	(
+		cd ${_WRKDIR}
+		run tar -xzphf ${_RDSR}
+		run cc -Wno-all -Wno-tautological-compare \
+			-o rdsetroot $_RDSRSRC;
+	)
 
 	log Extracting boot image from bsd.rd
 	( cd ${_WRKDIR} && rdsetroot -x bsd.rd bsd.fs;)
