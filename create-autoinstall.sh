@@ -26,7 +26,7 @@ IMGSIZE=30
 TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 
 ARCH=$(uname -m)
-MIRROR=${MIRROR:=https://mirrors.evowise.com}
+MIRROR=${MIRROR:=https://mirror.leaseweb.net}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
 CLOUDURL=https://raw.githubusercontent.com/reyk/cloud-openbsd/master # $PWD
 ################################################################################

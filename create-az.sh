@@ -39,7 +39,7 @@ VM_SKU=Standard_LRS			# Premium_LRS, Standard_LRS
 VM_SIZE=Standard_DS2_v2			# Standard_A2 etc.
 
 ARCH=$(uname -m)
-MIRROR=${MIRROR:=https://mirrors.evowise.com/pub/OpenBSD}
+MIRROR=${MIRROR:=https://mirror.leaseweb.net/pub/OpenBSD}
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
 RC_CLOUD=$PWD/rc.cloud
 PKG_DEPS="azure-cli azure-vhd-utils qemu"
