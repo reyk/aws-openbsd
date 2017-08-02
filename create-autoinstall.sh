@@ -27,7 +27,8 @@ TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://mirror.leaseweb.net}
-AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v0.1
+AGENTVER=0.1
+AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v${AGENTVER}
 CLOUDURL=$PWD/data #https://raw.githubusercontent.com/reyk/cloud-openbsd/master
 ################################################################################
 _WRKDIR= _LOG= _IMG= _REL=
@@ -115,19 +116,23 @@ create_img() {
 	run mount /dev/${_VNDEV}a ${_MNT}
 
 	for _f in auto_install.{conf,sh}; do
-		cat ${_WRKDIR}/$_f | sed \
+		sed -i \
 			-e "s|%%MIRROR%%|${MIRROR:##*//}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
 			-e "s|%%AGENTURL%%|${AGENTURL}|g" \
-			>${_MNT}/$_f
+			-e "s|%%AGENTVER%%|${AGENTVER}|g" \
+			${_WRKDIR}/$_f
 	done
-	chmod 0755 ${_MNT}/auto_install.sh
+	install -m 0644 ${_WRKDIR}/auto_install.conf ${_MNT}/auto_install.conf
+	install -m 0755 ${_WRKDIR}/auto_install.sh ${_WRKDIR}/install.site
 
-	# Patch installer to add install script for cloud-agent
-	sed -i -e '/-x \/mnt\/\$MODE.site/i\
-	[[ -x /auto_$MODE.sh ]] && /auto_$MODE.sh
-	' ${_MNT}/install.sub
+	log Installing site${_REL}-openbsd.tgz
+	run tar -C ${_WRKDIR} -zcpvf \
+		${_MNT}/mnt2/site${_REL}-openbsd.tgz install.site
+	date > ${_MNT}/mnt2/INSTALL.amd64
+
+	# Patch installer script
 	sed -i -e 's/ 5/ 0/g' ${_MNT}/.profile
 
 	log Unmounting the boot image
