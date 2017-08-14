@@ -14,6 +14,9 @@ done
 
 _syspatch=$(syspatch -c 2>/dev/null)
 if [[ -n "$_syspatch" ]]; then
+	# 6.1 installs mp kernels afterwards, so fake it for syspatch
+	cp /bsd /bsd.sp
+
 	echo "Running syspatch"
 	syspatch
 fi
