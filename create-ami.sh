@@ -176,7 +176,7 @@ volume_ids() {
 
 create_ami() {
 	local _IMGNAME=${_IMG##*/}
-	local _BUCKETNAME=${_IMGNAME}
+        local _BUCKETNAME=$(echo ${_IMGNAME} | tr '[:upper:]' '[:lower:]')
 	local _VMDK=${_IMG}.vmdk
 	local _VOLIDS_NEW _VOLIDS _v
 	typeset -l _BUCKETNAME
@@ -195,6 +195,9 @@ create_ami() {
 
 	pr_action "converting image to stream-based VMDK"
 	vmdktool -v ${_VMDK} ${_IMG}
+
+        pr_action "creating the S3 bucket ${_BUCKETNAME} in region ${AWS_REGION}"
+        aws s3 mb s3://${_BUCKETNAME} --region ${AWS_REGION}
 
 	pr_action "uploading image to S3 and converting to volume in region ${AWS_REGION}"
 	_VOLIDS="$(volume_ids)"
