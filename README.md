@@ -27,6 +27,10 @@ kitten factory.
 
             az login
 
+> Note: To install azure-cli and azure-vhd-utils, please refer to the instructions at
+[jonathangray/ports-azure](https://github.com/jonathangray/ports-azure).
+
+
 ## Script Usage
 
 ```shell
