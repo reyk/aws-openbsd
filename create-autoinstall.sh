@@ -30,6 +30,7 @@ MIRROR=${MIRROR:=https://cloudflare.cdn.openbsd.org}
 AGENTVER=0.2.2
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v${AGENTVER}
 CLOUDURL=$PWD/data #https://raw.githubusercontent.com/reyk/cloud-openbsd/master
+CONSOLE=no
 ################################################################################
 _WRKDIR= _LOG= _IMG= _REL=
 ################################################################################
@@ -39,7 +40,7 @@ _RDSR="rdsetroot.tar.gz"
 _RDSRSRC="elf32.c elf64.c elfrdsetroot.c"
 
 usage() {
-	echo "usage: ${0##*/} [-n]" \
+	echo "usage: ${0##*/} [-cn]" \
 		" [-r release] [-s size] [-i image|.vhd] [-a agent-url]" >&2
 	exit 1
 }
@@ -122,6 +123,7 @@ create_img() {
 			-e "s|%%RELEASE%%|${RELEASE:-snapshots}|g" \
 			-e "s|%%AGENTURL%%|${AGENTURL}|g" \
 			-e "s|%%AGENTVER%%|${AGENTVER}|g" \
+			-e "s|%%CONSOLE%%|${CONSOLE}|g" \
 			${_WRKDIR}/$_f
 	done
 	install -m 0644 ${_WRKDIR}/auto_install.conf ${_MNT}/auto_install.conf
@@ -162,23 +164,34 @@ create_img() {
 	mount /dev/${_VNDEV}a ${_MNT}
 
 	log "Installing bsd.rd kernel"
-	mv ${_WRKDIR}/bsd.rd ${_MNT}
+	cp ${_WRKDIR}/bsd.rd ${_MNT}
 
 	log "Installing master boot record"
 	installboot -r ${_MNT} ${_VNDEV} /usr/mdec/biosboot /usr/mdec/boot
 
 	log "Configuring the image"
 	install -d ${_MNT}/etc
-	echo "stty com0 9600\nset tty com0\nboot bsd.rd" >${_MNT}/etc/boot.conf
+
+	log "Change the console to com0? $CONSOLE"
+	if [ $CONSOLE = "yes" ]; then
+		echo "stty com0 9600\nset tty com0\nboot bsd.rd" \
+			>${_MNT}/etc/boot.conf
+	else
+		echo "set image bsd.rd\nboot bsd.rd" \
+			>${_MNT}/etc/boot.conf
+	fi
 
 	log "Unmounting the image"
 	umount ${_MNT}
 	vnconfig -u ${_VNDEV}
 
 	log "Removing downloaded and temporary files"
-	rm -f ${_WRKDIR}/bsd.rd ${_AGENT} || true # non-fatal
-	rm -f ${_WRKDIR}/SHA256{,.sig} || true # non-fatal
-	rm -r ${_MNT} || true # non-fatal
+	(
+		cd ${_WRKDIR}
+		rm -f ${_RDSRSRC} ${_AGENT} || true # non-fatal
+		rm -f ${_WRKDIR}/SHA256{,.sig} || true # non-fatal
+		rm -r ${_MNT} || true # non-fatal
+	)
 
 	log "Image available at: ${_IMG}"
 }
@@ -190,9 +203,10 @@ geturl() {
 	esac
 }
 
-while getopts a:b:i:m:r:s: arg; do
+while getopts a:b:ci:m:r:s: arg; do
 	case ${arg} in
 	a)	AGENTURL="${OPTARG}";;
+	c)	CONSOLE=yes;;
 	i)	_IMG="${OPTARG}";;
 	m)	MIRROR="${OPTARG}";;
 	r)	RELEASE="${OPTARG}";;
