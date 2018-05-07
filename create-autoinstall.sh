@@ -26,8 +26,8 @@ IMGSIZE=30
 TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 
 ARCH=$(uname -m)
-MIRROR=${MIRROR:=https://mirror.leaseweb.net}
-AGENTVER=0.1
+MIRROR=${MIRROR:=https://cloudflare.cdn.openbsd.org}
+AGENTVER=0.2.1
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v${AGENTVER}
 CLOUDURL=$PWD/data #https://raw.githubusercontent.com/reyk/cloud-openbsd/master
 ################################################################################
@@ -108,7 +108,7 @@ create_img() {
 	)
 
 	log Extracting boot image from bsd.rd
-	( cd ${_WRKDIR} && rdsetroot -x bsd.rd bsd.fs;)
+	( cd ${_WRKDIR} && ./rdsetroot -x bsd.rd bsd.fs;)
 
 	log Mounting and patching boot image
 	vnconfig ${_VNDEV} ${_WRKDIR}/bsd.fs
