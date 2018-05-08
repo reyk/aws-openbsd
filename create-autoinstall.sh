@@ -27,7 +27,7 @@ TIMESTAMP=$(date "+%Y%m%d%H%M%S")
 
 ARCH=$(uname -m)
 MIRROR=${MIRROR:=https://cloudflare.cdn.openbsd.org}
-AGENTVER=0.3
+AGENTVER=0.4
 AGENTURL=https://github.com/reyk/cloud-agent/releases/download/v${AGENTVER}
 CLOUDURL=https://github.com/reyk/cloud-openbsd/raw/master/data/
 CONSOLE=no
