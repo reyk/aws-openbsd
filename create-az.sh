@@ -164,10 +164,10 @@ create_img() {
 	echo "127.0.0.1\tlocalhost" >${_MNT}/etc/hosts
 	echo "::1\t\tlocalhost" >>${_MNT}/etc/hosts
 	sed -i "s/^#\(PermitRootLogin\) .*/\1 no/" ${_MNT}/etc/ssh/sshd_config
-	chroot ${_MNT} ln -sf /usr/share/zoneinfo/UTC /etc/localtime
-	chroot ${_MNT} ldconfig /usr/local/lib /usr/X11R6/lib
-	chroot ${_MNT} rcctl disable sndiod
-	chroot ${_MNT} sha256 -h /var/db/kernel.SHA256 /bsd
+	env -i chroot ${_MNT} ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+	env -i chroot ${_MNT} ldconfig /usr/local/lib /usr/X11R6/lib
+	env -i chroot ${_MNT} rcctl disable sndiod
+	env -i chroot ${_MNT} sha256 -h /var/db/kernel.SHA256 /bsd
 
 	# If the rc.cloud file is not found, fallback to the sysmerge method.
 	if [[ -s "$RC_CLOUD" ]]; then
