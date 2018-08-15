@@ -9,7 +9,7 @@ echo "Installing cloud-agent"
 ftp -o /tmp/cloud-agent-%%AGENTVER%%.tgz %%AGENTURL%%
 pkg_add -Dunsigned /tmp/cloud-agent-%%AGENTVER%%.tgz
 for _if in /etc/hostname.*0; do
-	echo "!/usr/local/libexec/cloud-agent \"\\\$if\"" >>$_if
+	echo "!/usr/local/libexec/cloud-agent -U root \"\\\$if\"" >>$_if
 done
 
 _syspatch=$(syspatch -c 2>/dev/null)
